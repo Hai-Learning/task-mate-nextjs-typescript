@@ -1,34 +1,74 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# course Project - task-mate with Next.js, docker, mysql and GraphQL
 
-## Getting Started
+## Initialize a Next.js
 
-First, run the development server:
+- `npx create-next-app --use-npm`
+- install typescript/react: `npm install --save-dev typescript @types/react @types/node@14`
+- install apollo-server-micro: npm install -S apollo-server-micro
 
-```bash
-npm run dev
-# or
-yarn dev
+## Create a test sql schema
+
+```sql
+CREATE TABLE IF NOT EXISTS tasks(
+    id INT UNSIGNED AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    task_status VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id)
+)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Docker
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+### Create a docker-compose (read more docker document)
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+```
+version: "3.1"
+services:
+  mysql:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: myrootpassword
+      MYSQL_USER: development
+      MYSQL_PASSWORD: development
+      MYSQL_DATABASE: task_mate
+    ports:
+      - 127.0.0.1:3307:3307
+```
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### Basic use with docker and sql:
 
-## Learn More
+- to create a container: `docker-compose up`
+- to run container in the backgroud: `docker-compose up -d`
+- to stop the container running in the background (not remove images): `docker-compse stop`
+- to remove the container: `docker-compose down`
+- name of the docker-container: `docker-compose ps`
+- execute sql in docker (i for interactive): `docker exec -i name_of_mysql sh -c 'mysql -uroot -p"MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE' < db/schema.sql`
+  on Windows: `Get-Content db/schema.sql | docker exec -i CONTAINER_NAME sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" $MYSQL_DATABASE'`
+  --> MYSQL_ROOT_PASSWORD and MYSQL_DATABASE are specified in docker-compose.yml or .env file; db/schema.sql is the targeted schema file.
 
-To learn more about Next.js, take a look at the following resources:
+## Serverless-mysql
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Install: `npm i -S serverless-mysql`
+- add mysql to graphql.ts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```ts
+import mysql from "serverless-mysql";
+const db = mysql({
+  config: {
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    database: process.env.MYSQL_DATABASE,
+    password: process.env.MYSQL_PASSWORD,
+  },
+});
+```
 
-## Deploy on Vercel
+- connect to ApolloServer:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```ts
+const apolloServer = new ApolloServer({ typeDefs, resolvers, context: { db } });
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+export default apolloServer.createHandler({ path: "/api/graphql" });
+```

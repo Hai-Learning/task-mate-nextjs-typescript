@@ -1,9 +1,6 @@
-import { ApolloServer, gql } from "apollo-server-micro";
-import { IResolvers } from "graphql-tools";
+import { ApolloServer, gql, IResolvers } from "apollo-server-micro";
+import mysql from "serverless-mysql";
 
-// ! means required
-// [Task!]! = the non-empty array is required in return
-// without !, the query can return null
 const typeDefs = gql`
   enum TaskStatus {
     active
@@ -38,9 +35,18 @@ const typeDefs = gql`
   }
 `;
 
-const resolvers: IResolvers = {
+interface ApolloContext {
+  db: mysql.ServerlessMysql;
+}
+
+const resolvers: IResolvers<any, ApolloContext> = {
   Query: {
-    tasks(parent, args, context) {
+    async tasks(parent, args, context) {
+      const result = await context.db.query(
+        'SELECT "HELLO WORLD" as hello_world'
+      );
+      await db.end();
+      console.log({ result });
       return [];
     },
     task(parent, args, context) {
@@ -60,7 +66,16 @@ const resolvers: IResolvers = {
   },
 };
 
-const apolloServer = new ApolloServer({ typeDefs, resolvers });
+const db = mysql({
+  config: {
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    database: process.env.MYSQL_DATABASE,
+    password: process.env.MYSQL_PASSWORD,
+  },
+});
+
+const apolloServer = new ApolloServer({ typeDefs, resolvers, context: { db } });
 
 export const config = {
   api: {
