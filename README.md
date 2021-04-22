@@ -72,3 +72,48 @@ const apolloServer = new ApolloServer({ typeDefs, resolvers, context: { db } });
 
 export default apolloServer.createHandler({ path: "/api/graphql" });
 ```
+
+- to connect to sql in the console: `docker exec -it <containername> mysql -u<User> -h<Host> -p`
+
+- using graphql (in graphql page):
+  exp for create task:
+
+```ts
+mutation CreateTasl($input: CreateTaskInput!) {
+  createTask(input: $input) {
+    id
+    title
+    status
+  }
+}
+```
+
+query variable:
+
+```ts
+{
+  "input": {
+    "title": "My task #1"
+  }
+}
+```
+
+exp for task query:
+
+```ts
+query Tasks($status: TaskStatus) {
+  tasks(status: $status) {
+    id
+    title
+    status
+  }
+}
+```
+
+query variable (select all active tasks):
+
+```ts
+{
+  "status": "active"
+}
+```
