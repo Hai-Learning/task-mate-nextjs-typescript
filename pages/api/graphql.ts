@@ -1,4 +1,4 @@
-import { ApolloServer, gql } from "apollo-server-micro";
+import { ApolloServer, gql, UserInputError } from "apollo-server-micro";
 import mysql from "serverless-mysql";
 import { OkPacket } from "mysql";
 import { Resolvers, TaskStatus } from "../../generated/graphql-backend";
@@ -129,8 +129,15 @@ const resolvers: Resolvers<ApolloContext> = {
 
       return updatedTask;
     },
-    deleteTask(parent, args, context) {
-      return null;
+    async deleteTask(parent, args, context) {
+      const task = await getTaskById(args.id, context.db);
+
+      if (!task) {
+        throw new UserInputError("Could not find your task.");
+      }
+      await context.db.query("DELETE FROM tasks WHERE id = ?", [args.id]);
+
+      return task;
     },
   },
 };
