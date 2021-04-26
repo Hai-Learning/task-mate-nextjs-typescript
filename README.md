@@ -117,3 +117,12 @@ query variable (select all active tasks):
   "status": "active"
 }
 ```
+
+### Genarate graphql types for backend
+
+- To generate the types for graphql schema, we can use: https://www.graphql-code-generator.com/
+
+- install: `npm install --save graphql`
+- install graphql cli: `npm install --save-dev @graphql-codegen/cli`
+- intitialize graphql-codegen in our project: `npx graphql-codegen init` -> follow the instructions (not in this project we choose `Backend - API or server` for the type of graphql application, schema is in `http://localhost:3000/api/graphql`, the output file is `generated/graphql-backend.ts`)
+- to run codegen: `npm run codegen` (after `npm install`)
