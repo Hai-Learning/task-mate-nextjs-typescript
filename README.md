@@ -126,3 +126,145 @@ query variable (select all active tasks):
 - install graphql cli: `npm install --save-dev @graphql-codegen/cli`
 - intitialize graphql-codegen in our project: `npx graphql-codegen init` -> follow the instructions (not in this project we choose `Backend - API or server` for the type of graphql application, schema is in `http://localhost:3000/api/graphql`, the output file is `generated/graphql-backend.ts`)
 - to run codegen: `npm run codegen` (after `npm install`)
+
+### Create the Apollo client to our full-stack app during server side rendering
+
+- Move db, resolvers, schema and type-defs from pages/api/graphql.ts to the corresponding files in backend
+- Create `lib/client.ts` file (copied and modified from https://github.com/vercel/next.js/blob/canary/examples/api-routes-apollo-server-and-client-auth/apollo/client.js):
+
+```ts
+import { useMemo } from "react";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+import merge from "deepmerge";
+
+type MyApolloCache = any;
+
+let apolloClient: ApolloClient<MyApolloCache> | undefined;
+
+function createIsomorphLink() {
+  if (typeof window === "undefined") {
+    const { SchemaLink } = require("@apollo/client/link/schema");
+    const { schema } = require("../backend/schema");
+    const { db } = require("../backend/db");
+    return new SchemaLink({ schema, context: { db } });
+  } else {
+    const { HttpLink } = require("@apollo/client/link/http");
+    return new HttpLink({
+      uri: "/api/graphql",
+      credentials: "same-origin",
+    });
+  }
+}
+
+function createApolloClient() {
+  return new ApolloClient({
+    ssrMode: typeof window === "undefined",
+    link: createIsomorphLink(),
+    cache: new InMemoryCache(),
+  });
+}
+
+export function initializeApollo(initialState: MyApolloCache | null = null) {
+  const _apolloClient = apolloClient ?? createApolloClient();
+
+  // If your page has Next.js data fetching methods that use Apollo Client, the initial state
+  // get hydrated here
+  if (initialState) {
+    // Get existing cache, loaded during client side data fetching
+    const existingCache = _apolloClient.extract();
+
+    // Merge the existing cache into data passed from getStaticProps/getServerSideProps
+    const data = merge(initialState, existingCache);
+
+    // Restore the cache with the merged data
+    _apolloClient.cache.restore(data);
+  }
+  // For SSG and SSR always create a new Apollo Client
+  if (typeof window === "undefined") return _apolloClient;
+  // Create the Apollo Client once in the client
+  if (!apolloClient) apolloClient = _apolloClient;
+
+  return _apolloClient;
+}
+
+export function useApollo(initialState: MyApolloCache) {
+  const store = useMemo(() => initializeApollo(initialState), [initialState]);
+  return store;
+}
+```
+
+--> The client will try to get the data directly from our resolvers and the schema that it gets from the file system.
+--> In the browser, client will fetch the data using HttpLink ('/api/graphql')
+
+- In the pages/index.tsx:
+
+```ts
+const TasksQueryDocument = gql`
+  query Tasks {
+    tasks {
+      id
+      title
+      status
+    }
+  }
+`;
+
+interface TasksQuery {
+  tasks: { id: number; title: string; status: string }[];
+}
+
+export default function Home() {
+  const result = useQuery<TasksQuery>(TasksQueryDocument);
+  // ? undefined or result.data
+  const tasks = result.data?.tasks;
+
+  return (
+    <div className={styles.container}>
+      <Head>
+        <title>Tasks</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      {tasks &&
+        tasks.length > 0 &&
+        tasks.map((task) => {
+          return (
+            <div key={task.id}>
+              {task.title} ({task.status})
+            </div>
+          );
+        })}
+    </div>
+  );
+}
+
+export const getStaticProps = async () => {
+  const ApolloClient = initializeApollo();
+
+  await ApolloClient.query<TasksQuery>({
+    query: TasksQueryDocument,
+  });
+
+  return {
+    props: {
+      initialApolloState: ApolloClient.cache.extract(),
+    },
+  };
+};
+```
+
+--> Create a getStaticProps to fetch the data before rendering. ApolloClient stores the fetched results in the cache and then we pass the cache to the page using initialApolloState props
+
+- In the pages/\_app.tsx we create a custom apolloClient and pass the cache to the page components using ApolloProvider
+
+```ts
+function MyApp({ Component, pageProps }: AppProps) {
+  const ApolloClient = useApollo(pageProps.initialApolloState);
+  return (
+    <ApolloProvider client={ApolloClient}>
+      <Component {...pageProps} />
+    </ApolloProvider>
+  );
+}
+
+export default MyApp;
+```
