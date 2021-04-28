@@ -6,6 +6,7 @@ import {
   TasksDocument,
 } from "../generated/graphql-frontend";
 import TaskList from "../components/TaskList";
+import CreateTaskForm from "../components/CreateTaskForm";
 
 export default function Home() {
   const result = useTasksQuery();
@@ -18,6 +19,7 @@ export default function Home() {
         <title>Tasks</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
+      <CreateTaskForm />
       {result.loading ? (
         <p>Loading tasks...</p>
       ) : result.error ? (
