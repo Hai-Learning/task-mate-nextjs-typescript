@@ -74,6 +74,19 @@ export type UpdateTaskInput = {
   status?: Maybe<TaskStatus>;
 };
 
+export type CreateTaslMutationVariables = Exact<{
+  input: CreateTaskInput;
+}>;
+
+
+export type CreateTaslMutation = (
+  { __typename?: 'Mutation' }
+  & { createTask?: Maybe<(
+    { __typename?: 'Task' }
+    & Pick<Task, 'id' | 'title' | 'status'>
+  )> }
+);
+
 export type TasksQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -86,6 +99,41 @@ export type TasksQuery = (
 );
 
 
+export const CreateTaslDocument = gql`
+    mutation CreateTasl($input: CreateTaskInput!) {
+  createTask(input: $input) {
+    id
+    title
+    status
+  }
+}
+    `;
+export type CreateTaslMutationFn = Apollo.MutationFunction<CreateTaslMutation, CreateTaslMutationVariables>;
+
+/**
+ * __useCreateTaslMutation__
+ *
+ * To run a mutation, you first call `useCreateTaslMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateTaslMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createTaslMutation, { data, loading, error }] = useCreateTaslMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useCreateTaslMutation(baseOptions?: Apollo.MutationHookOptions<CreateTaslMutation, CreateTaslMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateTaslMutation, CreateTaslMutationVariables>(CreateTaslDocument, options);
+      }
+export type CreateTaslMutationHookResult = ReturnType<typeof useCreateTaslMutation>;
+export type CreateTaslMutationResult = Apollo.MutationResult<CreateTaslMutation>;
+export type CreateTaslMutationOptions = Apollo.BaseMutationOptions<CreateTaslMutation, CreateTaslMutationVariables>;
 export const TasksDocument = gql`
     query Tasks {
   tasks {

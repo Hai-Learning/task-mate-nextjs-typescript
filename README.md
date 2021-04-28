@@ -299,3 +299,25 @@ generated/graphql-frontend.ts:
 --> install the plugins if needed (find plugin installation in: https://www.graphql-code-generator.com/docs/plugins/typescript): `npm i -D @graphql-codegen/typescript-operations` and `npm i -D @graphql-codegen/typescript-react-apollo`
 --> re-run codegen to generate file and plugins: `npm run codegen` to get graphql types for frontend
 --> read the generated types and hooks to frontend implementation
+
+### Create new tasks
+
+- Create a create-task.graphql in graphql folder
+
+```ts
+mutation CreateTasl($input: CreateTaskInput!) {
+  createTask(input: $input) {
+    id
+    title
+    status
+  }
+}
+```
+
+--> run codegen to generate types and custom react hooks (some hooks like `useCreateTaslMutation`): `npm run codegen`
+
+- Create a CreateTaskFrom.tsx in components folder
+
+```ts
+
+```
