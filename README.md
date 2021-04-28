@@ -126,6 +126,20 @@ query variable (select all active tasks):
 - install graphql cli: `npm install --save-dev @graphql-codegen/cli`
 - intitialize graphql-codegen in our project: `npx graphql-codegen init` -> follow the instructions (not in this project we choose `Backend - API or server` for the type of graphql application, schema is in `http://localhost:3000/api/graphql`, the output file is `generated/graphql-backend.ts`)
 - to run codegen: `npm run codegen` (after `npm install`)
+- Create codegen.yml for backend:
+
+```ts
+overwrite: true
+schema: "http://localhost:3000/api/graphql"
+documents: graphql/**/*.graphql
+generates:
+  generated/graphql-backend.ts:
+    plugins:
+      - "typescript"
+      - "typescript-resolvers"
+    config:
+      useIndexSignature: true
+```
 
 ### Create the Apollo client to our full-stack app during server side rendering
 
@@ -268,3 +282,20 @@ function MyApp({ Component, pageProps }: AppProps) {
 
 export default MyApp;
 ```
+
+### Graphql for for frontend
+
+- add generation of graphql-front to the codegen.yml
+
+```ts
+...
+generated/graphql-frontend.ts:
+    plugins:
+      - "typescript"
+      - "typescript-operations"
+      - "typescript-react-apollo" // this is for apollo custom types for react
+```
+
+--> install the plugins if needed (find plugin installation in: https://www.graphql-code-generator.com/docs/plugins/typescript): `npm i -D @graphql-codegen/typescript-operations` and `npm i -D @graphql-codegen/typescript-react-apollo`
+--> re-run codegen to generate file and plugins: `npm run codegen` to get graphql types for frontend
+--> read the generated types and hooks to frontend implementation
