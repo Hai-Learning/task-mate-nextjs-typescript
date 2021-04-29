@@ -319,5 +319,171 @@ mutation CreateTasl($input: CreateTaskInput!) {
 - Create a CreateTaskFrom.tsx in components folder
 
 ```ts
+import React, { useState } from "react";
+import { useCreateTaslMutation } from "../generated/graphql-frontend";
 
+interface Props {
+  onSuccess: () => void;
+}
+
+const CreateTaskForm: React.FC<Props> = ({ onSuccess }) => {
+  const [title, setTitle] = useState("");
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+  };
+
+  // onCompleted is called when the mutation is completed
+  const [createTask, { loading, error }] = useCreateTaslMutation({
+    onCompleted: () => {
+      onSuccess();
+      setTitle("");
+    },
+  });
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!loading) {
+      try {
+        // variables are for inputing values through graphql
+        await createTask({ variables: { input: { title } } });
+      } catch (error) {
+        // Log the error
+      }
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {error && <p className="alert-error">An error occurred.</p>}
+      <input
+        type="text"
+        name="title"
+        placeholder="What would you like to get done?"
+        autoComplete="off"
+        className="text-input new-task-text-input"
+        value={title}
+        onChange={handleTitleChange}
+      />
+    </form>
+  );
+};
+
+export default CreateTaskForm;
+```
+
+### Form for updating tasks
+
+#### To do that, we need firstly to create custom types and hooks:
+
+- create a `task.graphql` file in graphql folder:
+
+```ts
+query Task($id: Int!) {
+  task(id: $id) {
+    id
+    title
+    status
+  }
+}
+```
+
+--> then run the codegen: `npm run codegen`
+
+- Since fetching the data from server is asynchronous, we create a react component `[id].tsx` with a getServerSideProps function (type GetServerSideProps provided by NextJS):
+
+```ts
+import { GetServerSideProps } from "next";
+import { initializeApollo } from "../../lib/client";
+import {
+  TaskQuery,
+  TaskQueryVariables,
+  TasksDocument,
+} from "../../generated/graphql-frontend";
+import { useRouter } from "next/router";
+import Error from "next/error";
+import { useTaskQuery } from "../../generated/graphql-frontend";
+import UpdateTaskForm from "../../components/UpdateTaskForm";
+
+const UpdateTask = () => {
+  // to get the id inside of the component, we use Next useRouter
+  const router = useRouter();
+  const id =
+    typeof router.query.id === "string" ? parseInt(router.query.id, 10) : NaN;
+  if (!id) {
+    return <Error statusCode={404} />;
+  }
+  const { data, loading, error } = useTaskQuery({ variables: { id } });
+  const task = data?.task;
+  return loading ? (
+    <p>Loading...</p>
+  ) : error ? (
+    <p>An error occurred</p>
+  ) : task ? (
+    <UpdateTaskForm intialValues={{ title: task.title }} />
+  ) : (
+    <p>Task not found.</p>
+  );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const id =
+    typeof context.params?.id === "string"
+      ? parseInt(context.params.id, 10)
+      : NaN;
+  if (id) {
+    // inititalize the ApolloClient
+    const apolloClient = initializeApollo();
+    await apolloClient.query<TaskQuery, TaskQueryVariables>({
+      query: TasksDocument,
+      variables: { id },
+    });
+    return { props: { initalApolloState: apolloClient.cache.extract() } };
+  }
+  return { props: {} };
+};
+
+export default UpdateTask;
+```
+
+- and an UpdateTaskForm component:
+
+```ts
+import React, { useState } from "react";
+
+interface Values {
+  title: string;
+}
+
+interface Props {
+  intialValues: Values;
+}
+
+const UpdateTaskForm: React.FC<Props> = ({ intialValues }) => {
+  const [values, setValues] = useState<Values>(intialValues);
+  const handlerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setValues((prevValues) => ({ ...prevValues, [name]: value }));
+  };
+  return (
+    <form>
+      <p>
+        <label className="field-label">Title</label>
+        <input
+          type="text"
+          name="title"
+          className="text-input"
+          value={values.title}
+          onChange={handlerChange}
+        />
+      </p>
+      <p>
+        <button className="button" type="submit">
+          Save
+        </button>
+      </p>
+    </form>
+  );
+};
+
+export default UpdateTaskForm;
 ```
