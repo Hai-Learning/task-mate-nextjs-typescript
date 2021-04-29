@@ -419,7 +419,7 @@ const UpdateTask = () => {
   ) : error ? (
     <p>An error occurred</p>
   ) : task ? (
-    <UpdateTaskForm intialValues={{ title: task.title }} />
+    <UpdateTaskForm id={task.id} intialValues={{ title: task.title }} />
   ) : (
     <p>Task not found.</p>
   );
@@ -486,4 +486,64 @@ const UpdateTaskForm: React.FC<Props> = ({ intialValues }) => {
 };
 
 export default UpdateTaskForm;
+```
+
+#### Update the graphql backend for task updating
+
+- Create update-task.graphql in graphql folder:
+
+```ts
+mutation UpdateTask($input: UpdateTaskInput!) {
+  updateTask(input: $input) {
+    id
+    title
+    status
+  }
+}
+```
+
+--> `npm run codegen`
+
+- In the UpdateTaskForm component, add onSubmit handler:
+
+```ts
+...
+// {loading, error is in result object}
+  const [updateTask, { loading, error }] = useUpdateTaskMutation();
+
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    try {
+      const result = await updateTask({
+        variables: { input: { id, title: values.title } },
+      });
+      if (result.data?.updateTask) {
+        // redirect the router
+        router.push("/");
+      }
+    } catch (error) {
+      // Log the error.
+    }
+  };
+
+   let errorMessage = "";
+  if (error) {
+    if (error.networkError) {
+      errorMessage = "A network error occurred, please try again.";
+    } else {
+      //   console.log(error.graphQLErrors);
+      errorMessage = "Sorry, an error occurred.";
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+    ...
+    <button className="button" type="submit" disabled={loading}>
+          {loading ? "Loading" : "Save"}
+        </button>
+    </form>
+  )
 ```
