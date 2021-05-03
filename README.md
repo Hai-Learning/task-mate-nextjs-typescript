@@ -642,3 +642,19 @@ export default TaskListItem;
 
 - Create a dynamic page `[status].tsx` in the pages: move index.tsx page to [status].tsx page
 - Since the index page also use the page in the [status].tsx, we export [status] as default in the index.tsx: `export { default } from './[status]';`
+
+### Single page rendering (Optional catch all routes - next documentation)
+
+- To render a single page app, we re-name the page file:
+  [status].tsx -> [[...status]].tsx
+  remove the index.tsx page
+- Status will be an array in the [[...status]].tsx:
+
+```ts
+const status =
+  Array.isArray(router.query.status) && router.query.status.length
+    ? router.query.status[0]
+    : undefined;
+```
+
+- In the `TaskFilter.tsx` component, add `shallow={true}` to the all Link component as well.
