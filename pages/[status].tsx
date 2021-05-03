@@ -12,7 +12,7 @@ import TaskFilter from "../components/TaskFilter";
 import { useRouter } from "next/router";
 import Error from "next/error";
 import { GetServerSideProps } from "next";
-import { TaskQueryVariables } from "../generated/graphql-frontend";
+import { useEffect, useRef } from "react";
 
 const isTaskStatus = (value: string): value is TaskStatus =>
   Object.values(TaskStatus).includes(value as TaskStatus);
@@ -24,7 +24,18 @@ export default function Home() {
   if (status !== undefined && !isTaskStatus(status)) {
     return <Error statusCode={404} />;
   }
-  const result = useTasksQuery({ variables: { status } });
+
+  const prevStatus = useRef(status);
+
+  useEffect(() => {
+    prevStatus.current = status;
+  }, [status]);
+
+  const result = useTasksQuery({
+    variables: { status },
+    fetchPolicy:
+      prevStatus.current === status ? "cache-first" : "cache-and-network",
+  });
 
   // ? undefined or result.data
   const tasks = result.data?.tasks;
@@ -37,7 +48,7 @@ export default function Home() {
       </Head>
       {/* result.refetch is used to refreshing the page after completed a task */}
       <CreateTaskForm onSuccess={result.refetch} />
-      {result.loading ? (
+      {result.loading && !tasks ? (
         <p>Loading tasks...</p>
       ) : result.error ? (
         <p>An error occurred.</p>
@@ -46,7 +57,7 @@ export default function Home() {
       ) : (
         <p className="no-tasks-message">You've got no tasks</p>
       )}
-      <TaskFilter />
+      <TaskFilter status={status} />
     </div>
   );
 }

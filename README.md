@@ -637,3 +637,8 @@ const TaskListItem: React.FC<Props> = ({ task }) => {
 
 export default TaskListItem;
 ```
+
+### Creating tasks filter component
+
+- Create a dynamic page `[status].tsx` in the pages: move index.tsx page to [status].tsx page
+- Since the index page also use the page in the [status].tsx, we export [status] as default in the index.tsx: `export { default } from './[status]';`
