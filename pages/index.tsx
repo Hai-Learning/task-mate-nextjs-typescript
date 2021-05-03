@@ -7,6 +7,7 @@ import {
 } from "../generated/graphql-frontend";
 import TaskList from "../components/TaskList";
 import CreateTaskForm from "../components/CreateTaskForm";
+import TaskFilter from "../components/TaskFilter";
 
 export default function Home() {
   const result = useTasksQuery();
@@ -30,6 +31,7 @@ export default function Home() {
       ) : (
         <p className="no-tasks-message">You've got no tasks</p>
       )}
+      <TaskFilter />
     </div>
   );
 }
